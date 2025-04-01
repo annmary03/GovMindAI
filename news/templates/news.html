@@ -1,0 +1,282 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/news.css' %}">
+{% endblock %}
+
+{% block content %}
+<meta http-equiv="refresh" content="260">
+<div class="container mt-4">
+    <h1 class="display-4 fw-bold mb-4 text-center">Latest News</h1>
+
+    <!-- Search and Filter Section -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <form method="GET" id="filter-form" class="row g-3 align-items-center">
+                <!-- Search Box -->
+                <div class="col-md position-relative">
+                    <div class="input-group">
+                        <span class="input-group-text">🔍</span>
+                        <input type="text" name="search" id="search-input" placeholder="Search news..." 
+                            class="form-control rounded-end"
+                            value="{{ request.GET.search }}">
+                    </div>
+                </div>
+
+                <!-- Date Filter -->
+                <div class="col-md-2">
+                    <input type="date" id="date-filter" name="date" value="{{ request.GET.date }}"
+                        class="form-control">
+                </div>
+
+                <!-- Sentiment Filter -->
+                <div class="col-md-2">
+                    <select name="sentiment" id="sentiment-select" class="form-select">
+                        <option value="" {% if not request.GET.sentiment %}selected{% endif %}>All Sentiments</option>
+                        <option value="Positive" {% if request.GET.sentiment == 'Positive' %}selected{% endif %}>Positive</option>
+                        <option value="Negative" {% if request.GET.sentiment == 'Negative' %}selected{% endif %}>Negative</option>
+                        <option value="Neutral" {% if request.GET.sentiment == 'Neutral' %}selected{% endif %}>Neutral</option>
+                    </select>
+                </div>
+
+                <!-- Search Button -->
+                <div class="col-md-auto">
+                    <button type="button" onclick="fetchNews()" class="btn btn-success rounded-pill px-4">
+                        Search
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Applied Filters Section -->
+            <div id="applied-filters" class="d-flex flex-wrap gap-2 mt-3"></div>
+        </div>
+    </div>
+
+    <!-- News Cards Grid -->
+    <div id="news-grid" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4"></div>
+
+    <!-- Pagination Controls -->
+    <nav aria-label="News pagination" class="mt-4">
+        <ul id="pagination" class="pagination justify-content-center">
+            <li id="prev-page-item" class="page-item disabled">
+                <button id="prev-page" class="page-link" onclick="fetchNews(currentPage - 1)">Previous</button>
+            </li>
+            <li class="page-item active">
+                <span id="page-info" class="page-link">Page 1</span>
+            </li>
+            <li id="next-page-item" class="page-item">
+                <button id="next-page" class="page-link" onclick="fetchNews(currentPage + 1)">Next</button>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+<script>
+let currentPage = 1;
+
+function renderPagination(totalPages, currentPage) {
+    const prevPageItem = document.getElementById("prev-page-item");
+    const nextPageItem = document.getElementById("next-page-item");
+    const pageInfo = document.getElementById("page-info");
+    
+    prevPageItem.classList.toggle("disabled", currentPage === 1);
+    nextPageItem.classList.toggle("disabled", currentPage === totalPages);
+    pageInfo.innerText = `Page ${currentPage} of ${totalPages}`;
+}
+
+function updateAppliedFilters() {
+    const filterContainer = document.getElementById("applied-filters");
+    filterContainer.innerHTML = ""; // Clear previous filters
+
+    let search = document.getElementById("search-input").value;
+    let date = document.getElementById("date-filter").value;
+    let sentiment = document.getElementById("sentiment-select").value;
+
+    const filters = [];
+
+    if (search) {
+        filters.push({ label: `Search: ${search}`, id: "search-input", type: "search" });
+    }
+    if (date) {
+        filters.push({ label: `Date: ${date}`, id: "date-filter", type: "date" });
+    }
+    if (sentiment) {
+        filters.push({ label: `Sentiment: ${sentiment}`, id: "sentiment-select", type: "sentiment" });
+    }
+
+    // Display selected filters below with a cross button (❌) to remove
+    filters.forEach(filter => {
+        const filterBadge = document.createElement("span");
+        filterBadge.className = "badge bg-light text-dark me-2 mb-2 d-inline-flex align-items-center";
+        filterBadge.innerHTML = `${filter.label} <button onclick="clearFilter('${filter.id}', '${filter.type}')" class="btn-close btn-close-sm ms-2" aria-label="Remove filter"></button>`;
+        filterContainer.appendChild(filterBadge);
+    });
+
+    // Ensure filters section remains visible even when no results are found
+    filterContainer.style.display = filters.length ? "flex" : "none";
+}
+
+function clearFilter(filterId, type) {
+    document.getElementById(filterId).value = "";
+    fetchNews(); // Refresh results after filter removal
+}
+
+function fetchNews(page = 1) {
+    if (page < 1) return; // Prevent negative pages
+
+    currentPage = page;
+    document.getElementById("page-info").innerText = `Page ${currentPage}`;
+
+    const search = document.getElementById("search-input").value;
+    const date = document.getElementById("date-filter").value;
+    const sentiment = document.getElementById("sentiment-select").value;
+
+    // Update the endpoint to match your actual API endpoint
+    fetch(`/news/news_get/?search=${search}&date=${date}&sentiment=${sentiment}&page=${page}`)
+        .then(response => response.json())
+        .then(data => {
+            const newsGrid = document.getElementById("news-grid");
+            newsGrid.innerHTML = ""; // Clear previous results
+
+            if (data.news && data.news.length > 0) {
+                data.news.forEach(article => {
+                    // Use default image if image_url is not available
+                    const imageUrl = article.image_url ? article.image_url : "{% static 'default.jpeg' %}";
+                    console.log(article);
+                    // Format the date if needed
+                    let formattedDate = article.last_updated;
+                    if (article.last_updated && typeof article.last_updated === 'string' && article.last_updated.includes('T')) {
+                        const dateObj = new Date(article.last_updated);
+                        formattedDate = dateObj.toLocaleString();
+                    }
+                    
+                    const card = document.createElement("div");
+                    card.className = "col";
+                    card.innerHTML = `
+                        <div class="card h-100 shadow-sm transition-hover">
+                            <img src="${imageUrl}" class="card-img-top" alt="${article.title}" style="height: 180px; object-fit: cover;">
+                            <div class="card-body">
+                                <h3 class="card-title fs-5 fw-bold">${article.title}</h3>
+                                <p class="card-text text-dark"><strong>Source:</strong> ${article.source || "Unknown"}</p>
+                                <p class="card-text text-dark"><strong>Last Updated:</strong> ${formattedDate}</p>
+                                <p class="card-text">
+                                    <strong>Sentiment:</strong> 
+                                    <span class="${getSentimentClass(article.sentiment)}">${article.sentiment || "Unknown"}</span>
+                                </p>
+                            </div>
+                            <div class="card-footer bg-transparent border-top-0">
+                                <a href="/news/news_get/${article.article_id}/" class="btn btn-success btn-sm rounded-pill">
+                                    Read More
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                    newsGrid.appendChild(card);
+                });
+                
+                // Update pagination controls
+                updatePaginationControls(data.total_pages || Math.ceil(data.total / data.per_page) || 1);
+            } else {
+                newsGrid.innerHTML = `<div class="col-12 text-center"><p class="text-danger">No news articles found. Try adjusting your filters.</p></div>`;
+                // Reset pagination when no results
+                updatePaginationControls(1);
+            }
+
+            updateAppliedFilters();
+        })
+        .catch(error => {
+            console.error("Error fetching news:", error);
+            document.getElementById("news-grid").innerHTML = `<div class="col-12 text-center"><p class="text-danger">An error occurred while fetching the news. Please try again later.</p></div>`;
+        });
+}
+
+function updatePaginationControls(totalPages) {
+    const prevPageItem = document.getElementById("prev-page-item");
+    const nextPageItem = document.getElementById("next-page-item");
+    const pageInfo = document.getElementById("page-info");
+    
+    prevPageItem.classList.toggle("disabled", currentPage === 1);
+    nextPageItem.classList.toggle("disabled", currentPage >= totalPages);
+    pageInfo.innerText = `Page ${currentPage} of ${totalPages}`;
+}
+
+function getSentimentClass(sentiment) {
+    if (typeof sentiment !== "string") {
+        return ""; 
+    }
+
+    switch (sentiment.toLowerCase()) {
+        case "positive": return "text-success fw-semibold";
+        case "neutral": return "text-secondary fw-semibold";
+        case "negative": return "text-danger fw-semibold";
+        default: return "";
+    }
+}
+
+window.onload = () => fetchNews();
+</script>
+
+<style>
+/* Custom variables */
+:root {
+    --primary-color: #4CAF50;
+    --hover-color: #45a049;
+}
+
+/* Custom button styling to match the green theme */
+.btn-success {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-success:hover {
+    background-color: var(--hover-color);
+    border-color: var(--hover-color);
+}
+
+/* Hover effect for news cards */
+.transition-hover {
+    transition: transform 0.3s ease;
+}
+
+.transition-hover:hover {
+    transform: translateY(-5px);
+}
+
+/* Custom styling for sentiment text */
+.text-success.fw-semibold {
+    color: #4CAF50 !important;
+}
+
+.text-danger.fw-semibold {
+    color: #F44336 !important;
+}
+
+/* Custom styling for applied filters */
+#applied-filters .badge {
+    padding: 0.5rem 0.75rem;
+}
+
+/* Make sure the Read More button has proper spacing */
+.card-footer .btn {
+    margin-top: 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    #filter-form {
+        flex-direction: column;
+    }
+    
+    .pagination {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}

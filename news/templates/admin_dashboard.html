@@ -1,0 +1,248 @@
+{% extends "admin_base.html" %}
+{% load static %}
+
+
+
+{% block content %}
+<meta http-equiv="refresh" content="60">
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="display-5 fw-bold text-danger">Admin Dashboard</h1>
+        <p class="lead">Manage all news articles and users from a central location.</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <div class="badge bg-danger p-2 fs-6">
+            Admin Panel
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary mb-3">
+                    <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path>
+                    <path d="M18 14h-8"></path>
+                    <path d="M15 18h-5"></path>
+                    <path d="M10 6h8v4h-8V6Z"></path>
+                </svg>
+                <h2 class="display-4 fw-bold">{{ total_news }}</h2>
+                <p class="lead">Total News Articles</p>
+                <a href="{% url 'admin_news' %}" class="btn btn-primary">Manage News</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-success mb-3">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <h2 class="display-4 fw-bold">{{ total_users }}</h2>
+                <p class="lead">Total Users</p>
+                <a href="{% url 'admin_users' %}" class="btn btn-success">Manage Users</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-lg-6 mb-4 mb-lg-0">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-danger">
+                <h5 class="card-title text-white mb-0">Sentiment Overview (All News)</h5>
+            </div>
+            <div class="card-body">
+                <div style="height: 250px;">
+                    <canvas id="sentimentPieChart"></canvas>
+                </div>
+                <div class="row text-center mt-3 pt-3 border-top">
+                    <div class="col-4">
+                        <div class="text-success">
+                            <div class="fs-5 fw-bold">{{ positive_percentage }}%</div>
+                            <div class="small">Positive</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-warning">
+                            <div class="fs-5 fw-bold">{{ negative_percentage }}%</div>
+                            <div class="small">Negative</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-primary">
+                            <div class="fs-5 fw-bold">{{ neutral_percentage }}%</div>
+                            <div class="small">Neutral</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-danger">
+                <h5 class="card-title text-white mb-0">Daily News Count</h5>
+            </div>
+            <div class="card-body">
+                <div style="height: 300px;">
+                    <canvas id="sentimentLineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-danger">
+        <h5 class="card-title text-white mb-0">News Channel Sentiment Analysis</h5>
+    </div>
+    <div class="card-body">
+        <div style="height: 400px;">
+            <canvas id="channelBarChart"></canvas>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    const dateLabels = [{% for item in daily_counts %}'{{ item.date }}'{% if not forloop.last %}, {% endif %}{% empty %}'No data'{% endfor %}];
+    const countData = [{% for item in daily_counts %}{{ item.count }}{% if not forloop.last %}, {% endif %}{% empty %}0{% endfor %}];
+    const positiveData = [{% for item in daily_counts %}{{ item.positive }}{% if not forloop.last %}, {% endif %}{% empty %}0{% endfor %}];
+    const negativeData = [{% for item in daily_counts %}{{ item.negative }}{% if not forloop.last %}, {% endif %}{% empty %}0{% endfor %}];
+    const neutralData = [{% for item in daily_counts %}{{ item.neutral }}{% if not forloop.last %}, {% endif %}{% empty %}0{% endfor %}];
+    // Pie chart for sentiment overview
+    const ctxPie = document.getElementById('sentimentPieChart').getContext('2d');
+    // Add a check to ensure data is valid
+    const pieData = [
+        {{ positive_percentage|default:"0" }}, 
+        {{ negative_percentage|default:"0" }}, 
+        {{ neutral_percentage|default:"0" }}
+    ];
+    console.log("Pie Chart Data:", pieData);
+
+
+
+    // Check if all data is zero, add a placeholder if so
+    const sentimentPieChart = new Chart(ctxPie, {
+        type: 'pie',
+        data: {
+            labels: ['Positive', 'Negative', 'Neutral'],
+            datasets: [{
+                data: pieData,
+                backgroundColor: ['#198754', '#ffc107', '#0d6efd'],
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    
+    // Line chart for daily news count
+    const ctxLine = document.getElementById('sentimentLineChart').getContext('2d');
+    const sentimentLineChart = new Chart(ctxLine, {
+        type: 'line',
+        data: {
+            labels: dateLabels,
+            datasets: [
+                {
+                    label: 'Total',
+                    data: countData,
+                    borderColor: '#6c757d',
+                    tension: 0.1,
+                    fill: false
+                },
+                {
+                    label: 'Positive',
+                    data: [{% for item in daily_counts %}{{ item.positive }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    borderColor: '#198754',
+                    tension: 0.1,
+                    fill: false
+                },
+                {
+                    label: 'Negative',
+                    data: [{% for item in daily_counts %}{{ item.negative }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    borderColor: '#ffc107',
+                    tension: 0.1,
+                    fill: false
+                },
+                {
+                    label: 'Neutral',
+                    data: [{% for item in daily_counts %}{{ item.neutral }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    borderColor: '#0d6efd',
+                    tension: 0.1,
+                    fill: false
+                }
+                    // ...other datasets
+                ]
+            },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    
+    // Bar chart for channel sentiment analysis
+    const ctxBar = document.getElementById('channelBarChart').getContext('2d');
+    const channelLabels = [{% for channel in news_channels %}'{{ channel.channel_name }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+
+    const channelBarChart = new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+            labels: channelLabels,
+            datasets: [
+                {
+                    label: 'Positive',
+                    data: [{% for channel in news_channels %}{{ channel.positive }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    backgroundColor: '#198754',
+                },
+                {
+                    label: 'Negative',
+                    data: [{% for channel in news_channels %}{{ channel.negative }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    backgroundColor: '#ffc107',
+                },
+                {
+                    label: 'Neutral',
+                    data: [{% for channel in news_channels %}{{ channel.neutral }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    backgroundColor: '#0d6efd',
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    stacked: true,
+                },
+                y: {
+                    stacked: true,
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

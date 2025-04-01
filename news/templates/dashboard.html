@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<meta http-equiv="refresh" content="60">
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="display-5 fw-bold text-success">News Sentiment Dashboard</h1>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <div class="badge bg-info p-2 fs-6">
+            Department: {{ user_department }}
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-lg-6 mb-4 mb-lg-0">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-warning">
+                <h5 class="card-title  mb-0">Sentiment Overview</h5>
+            </div>
+            <div class="card-body">
+                <div style="height: 250px;">
+                    <canvas id="sentimentPieChart"></canvas>
+                </div>
+                <div class="row text-center mt-3 pt-3 border-top">
+                    <div class="col-4">
+                        <div class="text-success">
+                            <div class="fs-5 fw-bold">{{ positive_percentage }}%</div>
+                            <div class="small">Positive</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-warning">
+                            <div class="fs-5 fw-bold">{{ negative_percentage }}%</div>
+                            <div class="small">Negative</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-primary">
+                            <div class="fs-5 fw-bold">{{ neutral_percentage }}%</div>
+                            <div class="small">Neutral</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-warning">
+                <h5 class="card-title mb-0">Daily Sentiment Trend</h5>
+            </div>
+            <div class="card-body">
+                <div style="height: 300px;">
+                    <canvas id="sentimentLineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-warning">
+        <h5 class="card-title mb-0">News Channels Overview</h5>
+    </div>
+    <div class="card-body">
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for channel in news_channels %}
+            <div class="col">
+                <div class="card h-100 border-start border-4 border-secondary">
+                    <div class="card-body">
+                        <h6 class="card-title fw-bold">{{ channel.name }}</h6>
+                        <div class="d-flex justify-content-between mt-3">
+                            <div class="text-success">
+                                <span class="fw-bold">Positive: </span></br>
+                                <span>+ {{ channel.positive_count }}</span>
+                            </div>
+                            <div class="text-warning">
+                                <span class="fw-bold">Negative: -</span></br>
+                                <span>- {{ channel.negative_count }}</span>
+                            </div>
+                            <div class="text-primary">
+                                <span class="fw-bold">Neutral: </span></br>
+                                <span>○ {{ channel.neutral_count }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script>
+    // Pie Chart
+    const pieCtx = document.getElementById('sentimentPieChart').getContext('2d');
+    const sentimentPieChart = new Chart(pieCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Positive', 'Negative', 'Neutral'],
+            datasets: [{
+                data: [{{ positive_percentage }}, {{ negative_percentage }}, {{ neutral_percentage }}],
+                backgroundColor: ['#28a745', '#ff7b07', '#0d6efd'],
+                borderWidth: 1,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Line Chart
+    const lineCtx = document.getElementById('sentimentLineChart').getContext('2d');
+    const sentimentLineChart = new Chart(lineCtx, {
+        type: 'line',
+        data: {
+            labels: {{ dates|safe }},
+            datasets: [
+                {
+                    label: 'Positive',
+                    data: {{ daily_positive_counts|safe }},
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                },
+                {
+                    label: 'Negative',
+                    data: {{ daily_negative_counts|safe }},
+                    borderColor: '#ff7b07',
+                    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                },
+                {
+                    label: 'Neutral',
+                    data: {{ daily_neutral_counts|safe }},
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of News'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

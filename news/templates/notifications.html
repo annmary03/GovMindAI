@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<meta http-equiv="refresh" content="60">
+<div class="container py-4">
+  <div class="row">
+    <div class="col-12">
+      <div class="bg-warning p-4 mb-4 rounded">
+        <h1 class="text-center mb-3">All Notifications</h1>
+      </div>
+    </div>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      {% if notifications %}
+        {% for notification in notifications %}
+          <div class="card mb-3 card-hover">
+            <div class="card-body">
+              <h5 class="card-title">{{ notification.title }}</h5>
+              <p class="card-subtitle mb-2 text-muted small">{{ notification.timestamp }}</p>
+              <p class="card-text">{{ notification.content|truncatewords:30 }}</p>
+              {% if notification.link %}
+                <a href="{{ notification.link }}" class="btn btn-custom-primary btn-sm" target="_blank">Read Full Article</a>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">No notifications found</h5>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

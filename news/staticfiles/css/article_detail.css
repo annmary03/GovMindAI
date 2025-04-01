@@ -1,0 +1,78 @@
+/* Custom styling to complement Bootstrap */
+
+/* Card styling */
+.card {
+    border-radius: 10px;
+    border: none;
+  }
+  
+  /* Progress bars */
+  .progress {
+    height: 10px;
+    border-radius: 5px;
+  }
+  
+  /* Article text */
+  .article-text {
+    line-height: 1.7;
+  }
+  
+  .article-text p {
+    margin-bottom: 1rem;
+  }
+  
+  /* Links styling */
+  .list-group-item a {
+    color: #007bff;
+    display: block;
+    padding: 0.25rem 0;
+    transition: color 0.2s ease;
+  }
+  
+  .list-group-item a:hover {
+    color: #0056b3;
+    text-decoration: underline !important;
+  }
+  
+  /* Back button styling */
+  .btn-outline-secondary {
+    border-radius: 20px;
+    padding: 8px 20px;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-outline-secondary:hover {
+    background-color: #6c757d;
+    color: white;
+    transform: translateY(-2px);
+  }
+  
+  /* Image styling */
+  .img-fluid {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  /* Override Bootstrap's default colors if needed */
+  .bg-success {
+    background-color: #4caf50 !important;
+  }
+  
+  .bg-danger {
+    background-color: #f44336 !important;
+  }
+  
+  .bg-warning {
+    background-color: #ffc107 !important;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .card-body {
+      padding: 1.25rem;
+    }
+    
+    h1.card-title {
+      font-size: 1.75rem;
+    }
+  }
+  
