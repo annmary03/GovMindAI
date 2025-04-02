@@ -293,10 +293,10 @@ def logout_view(request):
     return redirect('login')
 
 def get_news(request):
-    
     search_query = request.GET.get('search', '').strip()
     date_filter = request.GET.get('date', '').strip()
     sentiment_filter = request.GET.get('sentiment', '').strip()
+    department_filter = request.GET.get('department', '').strip()  # Get department filter
     page_number = int(request.GET.get("page", 1))
     limit = int(request.GET.get("limit", 30))
 
@@ -318,6 +318,9 @@ def get_news(request):
     if sentiment_filter:
         news_queryset = news_queryset.filter(sentiment__iexact=sentiment_filter)
 
+    if department_filter:
+        news_queryset = news_queryset.filter(category__iexact=department_filter)  # Filtering by department (category)
+
     paginator = Paginator(news_queryset, limit)
     try:
         page_obj = paginator.page(page_number)
@@ -329,21 +332,21 @@ def get_news(request):
         sentiment = str(article.sentiment) if isinstance(article.sentiment, str) else article.sentiment.get("label", "unknown")
 
         news_data.append({
-            "article_id": str(article.article_id),  # ✅ FIXED!
+            "article_id": article.article_id,
             "title": article.title,
-            "department": article.department,
-            "sentiment": sentiment,
             "source": article.source,
-            "last_updated": article.last_updated.strftime("%Y-%m-%d %H:%M") if article.last_updated else "Unknown",
-            "url": article.url or "#",
-            "image_url": article.image_url
+            "last_updated": article.last_updated.strftime("%Y-%m-%d %H:%M:%S"),
+            "sentiment": sentiment,
+            "category": article.category,  # Include department/category
+            "image_url": article.image_url if article.image_url else None,
         })
 
     return JsonResponse({
         "news": news_data,
         "total_pages": paginator.num_pages,
-        "current_page": page_obj.number
+        "current_page": page_number,
     })
+
 
 
 def article_detail(request, article_id):
@@ -373,7 +376,7 @@ def article_detail(request, article_id):
     last_updated = article.last_updated.strftime("%Y-%m-%d %H:%M") if article.last_updated else "Unknown Date"
 
     # ✅ Get related articles from the same department
-    related_articles = News.objects.filter(department=article.department).exclude(article_id=article_id)[:5]
+    related_articles = News.objects.filter(category=article.category).exclude(article_id=article_id)[:5]
 
     return render(request, "article_detail.html", {
         "article": article,

@@ -7,7 +7,7 @@ class News(djongo_models.Model):
     title = djongo_models.CharField(max_length=500)
     content = djongo_models.TextField()
     source = djongo_models.CharField(max_length=200, default="Unknown")
-    department = djongo_models.CharField(max_length=100, default="General")
+    category = djongo_models.CharField(max_length=100, default="General")
     sentiment = djongo_models.CharField(max_length=20, choices=[
         ('Positive', 'Positive'),
         ('Negative', 'Negative'),
